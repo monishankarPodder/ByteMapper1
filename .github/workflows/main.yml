@@ -23,10 +23,13 @@ jobs:
 
       - name: Find test methods
         run: |
-          mkdir -p test-list
-          grep -r "@Test" app/src/test/java | grep -Po '(?<=public void )\w+' > test-list/tests.txt
-          echo "Detected tests:"
-          cat test-list/tests.txt
+               mkdir -p test-list
+               find app/src/test/java -name "*.java" -print0 | xargs -0 grep -E "@Test" | cut -d: -f1 | sort -u | while read file; do
+               grep -E "public void" "$file" | sed -nE 's/.*public void ([a-zA-Z0-9_]+).*/\1/p'
+               done > test-list/tests.txt
+               echo "Detected tests:"
+               cat test-list/tests.txt
+
 
       - name: Run tests individually and collect JaCoCo
         run: |
