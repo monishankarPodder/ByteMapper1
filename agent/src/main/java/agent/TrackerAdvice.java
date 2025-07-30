@@ -3,29 +3,26 @@ package agent;
 import java.util.*;
 
 public class TrackerAdvice {
+    private static final ThreadLocal<String> currentTest = new ThreadLocal<>();
     private static final Map<String, Set<String>> methodToTestMap = new HashMap<>();
-    private static final ThreadLocal<String> currentTestName = new ThreadLocal<>();
 
-    // Called from test class
     public static void setCurrentTest(String testName) {
-        currentTestName.set(testName);
+        currentTest.set(testName);
+        System.out.println(">>> Current test set to: " + testName);
     }
 
-    // Called from instrumented methods (via ByteBuddy or manually)
     public static void logMethod(String methodName) {
-        String testName = currentTestName.get();
-        if (testName == null) {
-            testName = "UNKNOWN_TEST";
+        String testName = currentTest.get();
+        if (testName != null) {
+            methodToTestMap.computeIfAbsent(methodName, k -> new HashSet<>()).add(testName);
+            System.out.println(">>> Logged method: " + methodName + " for test: " + testName);
+        } else {
+            System.out.println(">>> Skipping logging method: " + methodName + " (no test context)");
         }
-        methodToTestMap.computeIfAbsent(methodName, k -> new HashSet<>()).add(testName);
-    }
-
-    // Optionally called manually with explicit test name
-    public static void logMethodCall(String methodName, String testName) {
-        methodToTestMap.computeIfAbsent(methodName, k -> new HashSet<>()).add(testName);
     }
 
     public static Map<String, Set<String>> getMethodToTestMap() {
+        System.out.println(">>> Mapping size: " + methodToTestMap.size());
         return methodToTestMap;
     }
 }
