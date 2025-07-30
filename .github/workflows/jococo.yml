@@ -1,39 +1,27 @@
-name: Run Method-Test Mapping
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 17
 
-      - name: Build all modules
-        run: mvn clean install
+    - name: Build with Maven
+      run: mvn clean install -DskipTests
 
-      - name: Debug – Run tests with verbose output
-        run: mvn -X test -pl app
+    - name: Run tests with agent attached
+      run: mvn -pl app test -DargLine="-javaagent:$(pwd)/agent/target/agent-1.0-SNAPSHOT.jar"
 
-      - name: Debug – List files in target directory
-        run: ls -l app/target
+    - name: Debug – Print mapping file if exists
+      run: cat app/target/method_test_mapping.json || echo "Mapping file not found"
 
-      - name: Show contents of mapping file (if any)
-        run: cat app/target/method_test_mapping.json || echo "Mapping file not found"
-
-      - name: Upload mapping file
-        uses: actions/upload-artifact@v4
-        with:
-          name: method-test-mapping
-          path: app/target/method_test_mapping.json
+    - name: Upload mapping file
+      uses: actions/upload-artifact@v4
+      with:
+        name: method_test_mapping
+        path: app/target/method_test_mapping.json
