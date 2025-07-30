@@ -1,0 +1,28 @@
+name: Build and Extract Method Mapping
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build and Test with Maven
+        run: mvn -B clean test --file pom.xml
+
+      - name: Print generated method mapping
+        run: cat app/target/method_test_mapping.json || echo "Mapping file not found"
+
+      - name: Upload method mapping
+        uses: actions/upload-artifact@v4
+        with:
+          name: method-test-mapping
+          path: app/target/method_test_mapping.json
