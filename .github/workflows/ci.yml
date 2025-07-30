@@ -1,0 +1,66 @@
+name: Reverse Mapping with JaCoCo
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  reverse-map:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build project (skip tests)
+        run: mvn clean install -DskipTests -pl agent,app
+
+      - name: Extract test method names
+        run: |
+          mkdir -p test-list
+          grep -r "@Test" app/src/test/java | grep -Po '(?<=public void )\w+' > test-list/tests.txt
+          echo "Detected tests:"
+          cat test-list/tests.txt
+
+      - name: Run each test individually and generate .exec files
+        run: |
+          while read TEST; do
+            echo "Running test: $TEST"
+            mvn -Dtest="*#$TEST" test -pl app -Djacoco.destFile=target/$TEST.exec || true
+          done < test-list/tests.txt
+
+      - name: Download JaCoCo CLI
+        run: |
+          mkdir -p tools
+          curl -L -o tools/jacoco-cli.jar https://repo1.maven.org/maven2/org/jacoco/org.jacoco.cli/0.8.11/org.jacoco.cli-0.8.11-nodeps.jar
+
+      - name: Generate CSVs from each .exec file
+        run: |
+          mkdir -p method-mapping
+          for exec in target/*.exec; do
+            test_name=$(basename "$exec" .exec)
+            java -jar tools/jacoco-cli.jar report "$exec" \
+              --classfiles app/target/classes \
+              --sourcefiles app/src/main/java \
+              --csv method-mapping/"$test_name".csv
+          done
+
+      - name: Generate final reverse method-to-test mapping JSON
+        run: |
+          pip install pandas
+          python3 reverse_map.py
+
+      - name: Upload reverse mapping file
+        uses: actions/upload-artifact@v4
+        with:
+          name: method_test_mapping
+          path: app/target/method_test_mapping.json
