@@ -12,6 +12,8 @@ public class TestLifecycleTracker {
 
     @AfterClass
     public static void writeMapping() {
+        System.out.println("[DEBUG] TrackerAdvice map size: " + TrackerAdvice.getMethodToTestMap().size());
+
         try (FileWriter writer = new FileWriter("target/method_test_mapping.json")) {
             writer.write("{\n");
             boolean first = true;
