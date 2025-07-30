@@ -12,7 +12,7 @@ public class TestLifecycleTracker {
 
     @AfterClass
     public static void writeMapping() {
-        try (FileWriter writer = new FileWriter("app/target/method_test_mapping.json")) {
+        try (FileWriter writer = new FileWriter("target/method_test_mapping.json")) {
             writer.write("{\n");
             boolean first = true;
 
