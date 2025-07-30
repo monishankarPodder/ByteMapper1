@@ -4,7 +4,6 @@ import agent.TrackerAdvice;
 
 public class MethodCallTracker {
     public static void log(String methodName) {
-        // Provide dummy test name or real test context
-        TrackerAdvice.logMethodCall(methodName, "UNKNOWN_TEST");
+        TrackerAdvice.logMethod(methodName); // Uses current test name from ThreadLocal
     }
 }
