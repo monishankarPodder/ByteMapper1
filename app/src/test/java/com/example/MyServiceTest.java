@@ -8,7 +8,7 @@ public class MyServiceTest {
     @Test
     public void testAddUser() {
         TrackerAdvice.setCurrentTest("testAddUser");
-        new MyService().addUser(); // This method should trigger MethodCallTracker.log(...)
+        new MyService().addUser();
     }
 
     @Test
