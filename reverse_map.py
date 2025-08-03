@@ -1,27 +1,34 @@
 import os
 import xml.etree.ElementTree as ET
 import json
+from collections import defaultdict
 
-mapping = {}
+mapping = defaultdict(set)
 
 for file in os.listdir("reverse-mapping"):
     if not file.endswith(".xml"):
         continue
-    test_name = file[:-4]  # Remove .xml
+
+    test_name = file[:-4]
     tree = ET.parse(os.path.join("reverse-mapping", file))
     root = tree.getroot()
+
     for pkg in root.findall(".//package"):
-        pkg_name = pkg.get("name").replace("/", ".")
+        pkg_name = pkg.get('name').replace('/', '.')
         for cls in pkg.findall("class"):
-            cls_name = cls.get("name")
+            class_name = cls.get('name').replace('/', '.')
+            if "MethodCallTracker" in class_name:
+                continue  # Skip helper/logging classes
+
             for method in cls.findall("method"):
-                method_name = method.get("name")
-                fqmn = f"{pkg_name}.{cls_name}.{method_name}"
-                mapping.setdefault(fqmn, []).append(test_name)
+                method_name = method.get('name')
+                if method_name == "<init>":
+                    continue  # Skip constructors
+                fqmn = f"{pkg_name}.{class_name}.{method_name}"
+                mapping[fqmn].add(test_name)
 
-# Save output
-os.makedirs("reverse-mapping", exist_ok=True)
+# Convert to normal dict
+final_mapping = {k: sorted(list(v)) for k, v in mapping.items()}
+
 with open("reverse-mapping/method_test_mapping.json", "w") as f:
-    json.dump(mapping, f, indent=2)
-
-print("✅ method_test_mapping.json generated successfully")
+    json.dump(final_mapping, f, indent=2)
