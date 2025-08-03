@@ -1,0 +1,87 @@
+name: Reverse Coverage Mapping
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Enables manual triggering from the GitHub UI
+
+jobs:
+  reverse-mapping:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Build with Maven
+      run: mvn clean install -DskipTests
+
+    - name: Extract test method names
+      run: |
+        mkdir -p test-list
+        grep -r "@Test" app/src/test/java | grep -Po '(?<=void )\w+' > test-list/tests.txt
+        echo "Detected tests:"
+        cat test-list/tests.txt
+
+    - name: Run tests one by one to capture per-test JaCoCo exec files
+      run: |
+        mkdir -p test-execs
+        while read testName; do
+          echo "Running test: $testName"
+          mvn -pl app -Dtest="**.*#$testName" test
+          cp app/target/jacoco.exec "test-execs/$testName.exec"
+        done < test-list/tests.txt
+
+    - name: Install JaCoCo CLI
+      run: |
+        mkdir jacococli
+        curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
+        unzip -j jacococli.zip '*/lib/jacococli.jar' -d jacococli
+
+    - name: Generate reverse mapping JSON
+      run: |
+        mkdir -p reverse-mapping
+        for execFile in test-execs/*.exec; do
+          testName=$(basename "$execFile" .exec)
+          java -jar jacococli/jacococli.jar report "$execFile" \
+            --classfiles app/target/classes \
+            --sourcefiles app/src/main/java \
+            --xml "reverse-mapping/$testName.xml"
+        done
+
+        # Parse XML and create mapping (using Python)
+        python3 <<EOF
+import os
+import xml.etree.ElementTree as ET
+import json
+
+mapping = {}
+for file in os.listdir("reverse-mapping"):
+    if not file.endswith(".xml"):
+        continue
+    test_name = file[:-4]
+    tree = ET.parse(f"reverse-mapping/{file}")
+    root = tree.getroot()
+    for pkg in root.findall(".//package"):
+        for cls in pkg.findall("class"):
+            for method in cls.findall("method"):
+                fqmn = f"{pkg.get('name').replace('/', '.')}.{cls.get('name')}.{method.get('name')}"
+                mapping.setdefault(fqmn, []).append(test_name)
+
+with open("reverse-mapping/method_test_mapping.json", "w") as f:
+    json.dump(mapping, f, indent=2)
+EOF
+
+    - name: Upload reverse mapping artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: method_test_mapping
+        path: reverse-mapping/method_test_mapping.json
