@@ -1,0 +1,47 @@
+name: Reverse Coverage Mapping
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  reverse-mapping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build without tests
+        run: mvn clean install -DskipTests
+
+      - name: Find test methods
+        run: |
+               mkdir -p test-list
+               find app/src/test/java -name "*.java" -print0 | xargs -0 grep -E "@Test" | cut -d: -f1 | sort -u | while read file; do
+               grep -E "public void" "$file" | sed -nE 's/.*public void ([a-zA-Z0-9_]+).*/\1/p'
+               done > test-list/tests.txt
+               echo "Detected tests:"
+               cat test-list/tests.txt
+
+
+      - name: Run tests individually and collect JaCoCo
+        run: |
+          mkdir -p coverage-data
+          while IFS= read -r test; do
+            echo "Running $test..."
+            mvn test -pl app -Dtest=com.example.MyServiceTest#$test
+            cp app/target/jacoco.exec "coverage-data/$test.exec"
+          done < test-list/tests.txt
+
+      - name: Upload raw exec files
+        uses: actions/upload-artifact@v4
+        with:
+          name: per-test-jacoco
+          path: coverage-data/
