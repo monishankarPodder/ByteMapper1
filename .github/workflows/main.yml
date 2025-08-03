@@ -57,30 +57,32 @@ jobs:
               --xml reverse-mapping/"$testName".xml
           done
 
+      - name: Check reverse-mapping XML files
+        run: ls -l reverse-mapping/
+
       - name: Generate method-to-test mapping JSON
         run: |
-          python3 <<EOF
-import os
-import xml.etree.ElementTree as ET
-import json
+          import os
+          import xml.etree.ElementTree as ET
+          import json
 
-mapping = {}
+          mapping = {}
 
-for file in os.listdir("reverse-mapping"):
-    if not file.endswith(".xml"):
-        continue
-    test_name = file[:-4]
-    tree = ET.parse(f"reverse-mapping/{file}")
-    root = tree.getroot()
-    for pkg in root.findall(".//package"):
-        for cls in pkg.findall("class"):
-            for method in cls.findall("method"):
-                fqmn = f"{pkg.get('name').replace('/', '.')}.{cls.get('name')}.{method.get('name')}"
-                mapping.setdefault(fqmn, []).append(test_name)
+          for file in os.listdir("reverse-mapping"):
+              if not file.endswith(".xml"):
+                  continue
+              test_name = file[:-4]
+              tree = ET.parse(f"reverse-mapping/{file}")
+              root = tree.getroot()
+              for pkg in root.findall(".//package"):
+                  for cls in pkg.findall("class"):
+                      for method in cls.findall("method"):
+                          fqmn = f"{pkg.get('name').replace('/', '.')}.{cls.get('name')}.{method.get('name')}"
+                          mapping.setdefault(fqmn, []).append(test_name)
 
-with open("reverse-mapping/method_test_mapping.json", "w") as f:
-    json.dump(mapping, f, indent=2)
-EOF
+          with open("reverse-mapping/method_test_mapping.json", "w") as f:
+              json.dump(mapping, f, indent=2)
+        shell: python
 
       - name: Upload method-to-test mapping
         uses: actions/upload-artifact@v4
