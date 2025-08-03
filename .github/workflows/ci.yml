@@ -1,4 +1,4 @@
-name: Reverse Coverage Mapping
+name: Reverse Coverage MappingCI
 
 on:
   push:
