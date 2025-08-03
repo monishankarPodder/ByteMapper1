@@ -31,12 +31,12 @@ jobs:
           echo "Detected tests:"
           cat test-list/tests.txt
 
-      - name: Run tests individually and collect JaCoCo data
+      - name: Run tests individually and collect JaCoCo
         run: |
           mkdir -p coverage-data
           while IFS= read -r test; do
             echo "Running $test..."
-            mvn test -pl app -Dtest=com.example.MyServiceTest#$test
+            mvn test -pl app -Dtest="**.*#$test"
             cp app/target/jacoco.exec "coverage-data/$test.exec"
           done < test-list/tests.txt
 
@@ -46,7 +46,7 @@ jobs:
           curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
           unzip -j jacococli.zip '*/lib/jacococli.jar' -d jacococli
 
-      - name: Generate JaCoCo XML reports for each test
+      - name: Generate XML reports from each .exec
         run: |
           mkdir -p reverse-mapping
           for execFile in coverage-data/*.exec; do
@@ -54,7 +54,7 @@ jobs:
             java -jar jacococli/jacococli.jar report "$execFile" \
               --classfiles app/target/classes \
               --sourcefiles app/src/main/java \
-              --xml "reverse-mapping/$testName.xml"
+              --xml reverse-mapping/"$testName".xml
           done
 
       - name: Generate method-to-test mapping JSON
@@ -65,6 +65,7 @@ import xml.etree.ElementTree as ET
 import json
 
 mapping = {}
+
 for file in os.listdir("reverse-mapping"):
     if not file.endswith(".xml"):
         continue
