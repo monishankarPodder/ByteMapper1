@@ -42,10 +42,11 @@ jobs:
 
       - name: Install JaCoCo CLI
         run: |
-          curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
-          unzip jacococli.zip -d jacococli-full
-          mkdir -p jacococli
-          cp jacococli-full/jacoco-0.8.11/lib/jacococli.jar jacococli/
+         curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
+         unzip jacococli.zip -d jacococli-full
+         mkdir -p jacococli
+         cp jacococli-full/lib/jacococli.jar jacococli/
+
 
 
       - name: Generate XML reports from each .exec
