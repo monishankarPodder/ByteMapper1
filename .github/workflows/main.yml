@@ -42,10 +42,12 @@ jobs:
 
       - name: Install JaCoCo CLI
         run: |
-          curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
-          unzip jacococli.zip -d jacococli-full
-          mkdir -p jacococli
-          cp jacococli-full/lib/jacococli.jar jacococli/
+         curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
+         unzip jacococli.zip -d jacococli-full
+         mkdir -p jacococli
+         cp jacococli-full/lib/jacococli.jar jacococli/
+
+
 
       - name: Generate XML reports from each .exec
         run: |
@@ -61,28 +63,26 @@ jobs:
       - name: Generate method-to-test mapping JSON
         run: |
           mkdir -p reverse-mapping
-          cat << 'EOF' > reverse-mapping/gen_mapping.py
-import os
-import xml.etree.ElementTree as ET
-import json
-
-mapping = {}
-
-for file in os.listdir("reverse-mapping"):
-    if not file.endswith(".xml"):
-        continue
-    test_name = file[:-4]
-    tree = ET.parse(f"reverse-mapping/{file}")
-    root = tree.getroot()
-    for pkg in root.findall(".//package"):
-        for cls in pkg.findall("class"):
-            for method in cls.findall("method"):
-                fqmn = f"{pkg.get('name').replace('/', '.')}.{cls.get('name')}.{method.get('name')}"
-                mapping.setdefault(fqmn, []).append(test_name)
-
-with open("reverse-mapping/method_test_mapping.json", "w") as f:
-    json.dump(mapping, f, indent=2)
-EOF
+          echo 'import os' > reverse-mapping/gen_mapping.py
+          echo 'import xml.etree.ElementTree as ET' >> reverse-mapping/gen_mapping.py
+          echo 'import json' >> reverse-mapping/gen_mapping.py
+          echo '' >> reverse-mapping/gen_mapping.py
+          echo 'mapping = {}' >> reverse-mapping/gen_mapping.py
+          echo '' >> reverse-mapping/gen_mapping.py
+          echo 'for file in os.listdir("reverse-mapping"):' >> reverse-mapping/gen_mapping.py
+          echo '    if not file.endswith(".xml"):' >> reverse-mapping/gen_mapping.py
+          echo '        continue' >> reverse-mapping/gen_mapping.py
+          echo '    test_name = file[:-4]' >> reverse-mapping/gen_mapping.py
+          echo '    tree = ET.parse(f"reverse-mapping/{file}")' >> reverse-mapping/gen_mapping.py
+          echo '    root = tree.getroot()' >> reverse-mapping/gen_mapping.py
+          echo '    for pkg in root.findall(".//package"):' >> reverse-mapping/gen_mapping.py
+          echo '        for cls in pkg.findall("class"):' >> reverse-mapping/gen_mapping.py
+          echo '            for method in cls.findall("method"):' >> reverse-mapping/gen_mapping.py
+          echo '                fqmn = f"{pkg.get(\"name\").replace(\"/\", \".\")}.{cls.get(\"name\")}.{method.get(\"name\")}"' >> reverse-mapping/gen_mapping.py
+          echo '                mapping.setdefault(fqmn, []).append(test_name)' >> reverse-mapping/gen_mapping.py
+          echo '' >> reverse-mapping/gen_mapping.py
+          echo 'with open("reverse-mapping/method_test_mapping.json", "w") as f:' >> reverse-mapping/gen_mapping.py
+          echo '    json.dump(mapping, f, indent=2)' >> reverse-mapping/gen_mapping.py
           python3 reverse-mapping/gen_mapping.py
 
       - name: Upload method-to-test mapping
