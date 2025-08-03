@@ -3,6 +3,7 @@ name: Reverse Coverage Mapping
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   reverse-mapping:
@@ -23,15 +24,14 @@ jobs:
 
       - name: Find test methods
         run: |
-               mkdir -p test-list
-               find app/src/test/java -name "*.java" -print0 | xargs -0 grep -E "@Test" | cut -d: -f1 | sort -u | while read file; do
-               grep -E "public void" "$file" | sed -nE 's/.*public void ([a-zA-Z0-9_]+).*/\1/p'
-               done > test-list/tests.txt
-               echo "Detected tests:"
-               cat test-list/tests.txt
+          mkdir -p test-list
+          find app/src/test/java -name "*.java" -print0 | xargs -0 grep -E "@Test" | cut -d: -f1 | sort -u | while read file; do
+            grep -E "public void" "$file" | sed -nE 's/.*public void ([a-zA-Z0-9_]+).*/\1/p'
+          done > test-list/tests.txt
+          echo "Detected tests:"
+          cat test-list/tests.txt
 
-
-      - name: Run tests individually and collect JaCoCo
+      - name: Run tests individually and collect JaCoCo data
         run: |
           mkdir -p coverage-data
           while IFS= read -r test; do
@@ -40,8 +40,49 @@ jobs:
             cp app/target/jacoco.exec "coverage-data/$test.exec"
           done < test-list/tests.txt
 
-      - name: Upload raw exec files
+      - name: Install JaCoCo CLI
+        run: |
+          mkdir jacococli
+          curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
+          unzip -j jacococli.zip '*/lib/jacococli.jar' -d jacococli
+
+      - name: Generate JaCoCo XML reports for each test
+        run: |
+          mkdir -p reverse-mapping
+          for execFile in coverage-data/*.exec; do
+            testName=$(basename "$execFile" .exec)
+            java -jar jacococli/jacococli.jar report "$execFile" \
+              --classfiles app/target/classes \
+              --sourcefiles app/src/main/java \
+              --xml "reverse-mapping/$testName.xml"
+          done
+
+      - name: Generate method-to-test mapping JSON
+        run: |
+          python3 <<EOF
+import os
+import xml.etree.ElementTree as ET
+import json
+
+mapping = {}
+for file in os.listdir("reverse-mapping"):
+    if not file.endswith(".xml"):
+        continue
+    test_name = file[:-4]
+    tree = ET.parse(f"reverse-mapping/{file}")
+    root = tree.getroot()
+    for pkg in root.findall(".//package"):
+        for cls in pkg.findall("class"):
+            for method in cls.findall("method"):
+                fqmn = f"{pkg.get('name').replace('/', '.')}.{cls.get('name')}.{method.get('name')}"
+                mapping.setdefault(fqmn, []).append(test_name)
+
+with open("reverse-mapping/method_test_mapping.json", "w") as f:
+    json.dump(mapping, f, indent=2)
+EOF
+
+      - name: Upload method-to-test mapping
         uses: actions/upload-artifact@v4
         with:
-          name: per-test-jacoco
-          path: coverage-data/
+          name: method_test_mapping
+          path: reverse-mapping/method_test_mapping.json
