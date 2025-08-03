@@ -5,10 +5,10 @@ from collections import defaultdict
 
 mapping = defaultdict(set)
 
-for file in os.listdir('method-mapping'):
+for file in os.listdir('app/method-mapping'):
     if file.endswith(".csv"):
         test = file.replace('.csv', '')
-        with open(f'method-mapping/{file}', newline='') as csvfile:
+        with open(f'app/method-mapping/{file}', newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 if row['METHOD'] != '<init>':  # Skip constructors
