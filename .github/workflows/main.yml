@@ -31,7 +31,7 @@ jobs:
           echo "Detected tests:"
           cat test-list/tests.txt
 
-      - name: Run tests individually and collect JaCoCo
+      - name: Run tests individually and collect JaCoCo data
         run: |
           mkdir -p coverage-data
           while IFS= read -r test; do
@@ -47,10 +47,21 @@ jobs:
           mkdir -p jacococli
           cp jacococli-full/lib/jacococli.jar jacococli/
 
+      - name: Generate XML reports for each exec file
+        run: |
+          mkdir -p reverse-mapping
+          for execFile in coverage-data/*.exec; do
+            testName=$(basename "$execFile" .exec)
+            java -jar jacococli/jacococli.jar report "$execFile" \
+              --classfiles app/target/classes \
+              --sourcefiles app/src/main/java \
+              --xml reverse-mapping/"$testName".xml
+          done
+
       - name: Generate method-to-test mapping JSON
         run: |
           python3 reverse_map.py
-         
+
       - name: Upload method-to-test mapping
         uses: actions/upload-artifact@v4
         with:
