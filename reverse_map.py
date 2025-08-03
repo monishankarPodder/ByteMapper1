@@ -1,25 +1,27 @@
 import os
-import csv
+import xml.etree.ElementTree as ET
 import json
-from collections import defaultdict
 
-mapping = defaultdict(set)
+mapping = {}
 
-for file in os.listdir('app/method-mapping'):
-    if file.endswith(".csv"):
-        test = file.replace('.csv', '')
-        with open(f'app/method-mapping/{file}', newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                if row['METHOD'] != '<init>':  # Skip constructors
-                    fq_method = row['CLASS'] + "#" + row['METHOD']
-                    mapping[fq_method].add(test)
+for file in os.listdir("reverse-mapping"):
+    if not file.endswith(".xml"):
+        continue
+    test_name = file[:-4]  # Remove .xml
+    tree = ET.parse(os.path.join("reverse-mapping", file))
+    root = tree.getroot()
+    for pkg in root.findall(".//package"):
+        pkg_name = pkg.get("name").replace("/", ".")
+        for cls in pkg.findall("class"):
+            cls_name = cls.get("name")
+            for method in cls.findall("method"):
+                method_name = method.get("name")
+                fqmn = f"{pkg_name}.{cls_name}.{method_name}"
+                mapping.setdefault(fqmn, []).append(test_name)
 
-# Convert sets to lists
-final_mapping = {k: list(v) for k, v in mapping.items()}
+# Save output
+os.makedirs("reverse-mapping", exist_ok=True)
+with open("reverse-mapping/method_test_mapping.json", "w") as f:
+    json.dump(mapping, f, indent=2)
 
-os.makedirs("app/target", exist_ok=True)
-with open('app/target/method_test_mapping.json', 'w') as f:
-    json.dump(final_mapping, f, indent=2)
-
-print("✅ method_test_mapping.json generated")
+print("✅ method_test_mapping.json generated successfully")
