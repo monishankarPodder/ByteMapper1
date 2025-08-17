@@ -24,6 +24,15 @@ for file in os.listdir("reverse-mapping"):
                 method_name = method.get('name')
                 if method_name == "<init>":
                     continue  # Skip constructors
+
+                # ✅ Check coverage: only map the method if it was actually hit
+                instr_counter = method.find("counter[@type='INSTRUCTION']")
+                if instr_counter is None:
+                    continue
+                covered = int(instr_counter.get('covered'))
+                if covered == 0:
+                    continue
+
                 fqmn = f"{pkg_name}.{class_name}.{method_name}"
                 mapping[fqmn].add(test_name)
 
