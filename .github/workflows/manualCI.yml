@@ -26,12 +26,10 @@ jobs:
 
       - name: Extract test method names
         run: |
-         mkdir -p test-list
-         grep -r "@Test" app/src/test/java > temp.txt || true
-         grep -Po '(?<=void )\w+' temp.txt > test-list/tests.txt || true
-         rm -f temp.txt
-         echo "Detected tests:"
-         cat test-list/tests.txt || true
+          mkdir -p test-list
+          grep -r "@Test" app/src/test/java | grep -Po '(?<=void )\w+' > test-list/tests.txt
+          echo "Detected tests:"
+          cat test-list/tests.txt
 
       - name: Run tests one by one to capture per-test JaCoCo exec files
         run: |
