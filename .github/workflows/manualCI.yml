@@ -45,10 +45,10 @@ jobs:
           done < test-list/tests.txt
 
       - name: Install JaCoCo CLI
-        run: |
-          mkdir jacococli
-          curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
-          unzip -j jacococli.zip '*/lib/jacococli.jar' -d jacococli
+         run: |
+           mkdir jacococli
+           curl -L -o jacococli.zip https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.11/jacoco-0.8.11.zip
+           unzip -j jacococli.zip "jacoco-0.8.11/lib/jacococli.jar" -d jacococli
 
       - name: Generate reverse mapping XMLs
         run: |
