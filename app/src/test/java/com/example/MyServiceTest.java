@@ -9,7 +9,6 @@ public class MyServiceTest {
     public void testAddUser() {
         //TrackerAdvice.setCurrentTest("testAddUser");
         new MyService().addUser();
-        new MyService().addUser();
     }
 
     @Test
