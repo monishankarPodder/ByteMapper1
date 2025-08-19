@@ -2,7 +2,7 @@ name: Reverse Coverage Mapping
 
 on:
   push:
-    branches: [main1]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
