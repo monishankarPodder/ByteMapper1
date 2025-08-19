@@ -36,6 +36,7 @@ jobs:
           mkdir -p coverage-data
           while IFS= read -r test; do
             echo "Running test: $test"
+            rm -f app/target/jacoco.exec
             mvn test -pl app -Dtest="**.*#$test"
             cp app/target/jacoco.exec "coverage-data/${test}.exec"
           done < test-list/tests.txt
